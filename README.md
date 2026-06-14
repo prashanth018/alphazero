@@ -1,1 +1,4 @@
-# alphazero
+# AlphaZero
+
+## Implementation:
+- env: connect4

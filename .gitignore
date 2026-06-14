@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Note: this project's source package is named `env/` — do NOT ignore it.
+# Virtualenvs (if any) should live elsewhere or be named venv/.
+venv/
+.venv/
+
+# ML artifacts
+*.pt
+*.pth
+*.ckpt
+checkpoints/
+runs/
+wandb/
+data/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
