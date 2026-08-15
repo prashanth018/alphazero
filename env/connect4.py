@@ -19,12 +19,23 @@ class Connect4:
     def get_state(self):
         return self.board
 
-    def get_valid_actions(self):
-        actions = []
-        for action in self.actions:
-            if self._get_valid_row(action=action) >= 0:
-                actions.append(action)
-        return actions
+    # def get_valid_actions(self):
+    #     actions = []
+    #     for action in self.actions:
+    #         if self._get_valid_row(action=action) >= 0:
+    #             actions.append(action)
+    #     return actions
+
+    def get_valid_action(self):
+        # zeros per col, vector of (7,)
+        actions = (self.board == 0).float().sum(dim=0)
+        # return valid actions
+        torch.nonzero(actions > 0, as_tuple=True)[0].tolist()
+
+    def is_board_full(self):
+        if self.get_valid_action() == []:
+            return True
+        return False
 
     def get_shape(self):
         self.shape
@@ -56,6 +67,11 @@ class Connect4:
                 return (True, player)
         return (False, None)
 
+    def other_player(self, current_player):
+        if current_player == 1:
+            return -1
+        return 1
+
     def _player_has_won(self, player):
-        mask = (self.board == player).float().unsqueeze(0)
-        return (F.conv2d(mask, WIN_KERNELS, padding=3) == 4).any()
+        board_conf = (self.board == player).float().unsqueeze(0)
+        return (F.conv2d(board_conf, WIN_KERNELS, padding=3) == 4).any()
