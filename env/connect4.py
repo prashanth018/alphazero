@@ -26,14 +26,17 @@ class Connect4:
     #             actions.append(action)
     #     return actions
 
-    def get_valid_action(self):
+    def get_current_player(self):
+        return self.players[self.turn]
+
+    def get_valid_actions(self):
         # zeros per col, vector of (7,)
         actions = (self.board == 0).float().sum(dim=0)
         # return valid actions
-        torch.nonzero(actions > 0, as_tuple=True)[0].tolist()
+        return torch.nonzero(actions > 0, as_tuple=True)[0].tolist()
 
     def is_board_full(self):
-        if self.get_valid_action() == []:
+        if self.get_valid_actions() == []:
             return True
         return False
 
@@ -48,9 +51,12 @@ class Connect4:
             self.board[legal_row, action] = self.players[self.turn]
             self.turn = (self.turn + 1) % 2
         win, player = self._check_win()
+        is_board_full = self.is_board_full()
+        # win state
         if win:
             return self.board, True, player
-        if self.get_valid_actions() == []:
+        # draw
+        if is_board_full:
             return self.board, True, 0
         return self.board, False, 0
 

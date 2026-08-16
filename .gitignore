@@ -19,6 +19,10 @@ runs/
 wandb/
 data/
 
+# Personal scratch notes (not committed)
+learning.md
+to-do.md
+
 # Editor / OS
 .vscode/
 .idea/
