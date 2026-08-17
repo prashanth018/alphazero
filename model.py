@@ -41,3 +41,4 @@ if __name__ == "__main__":
     p, v = net(torch.zeros((1, 2, 6, 7)))
     print(p, v)
     print(p.shape, v.shape)
+    print(p[0][2].item())

@@ -81,3 +81,20 @@ class Connect4:
     def _player_has_won(self, player):
         board_conf = (self.board == player).float().unsqueeze(0)
         return (F.conv2d(board_conf, WIN_KERNELS, padding=3) == 4).any()
+
+    def is_done(self):
+        win, _ = self._check_win()
+        is_board_full = self.is_board_full()
+        if win or is_board_full:
+            return True
+        return False
+
+    def get_encoded_board_state(self):
+        state = self.get_state()
+        current_player = self.get_current_player()
+        return torch.stack(
+            [
+                (state == current_player).float(),
+                (state == self.other_player(current_player)).float(),
+            ]
+        )

@@ -1,5 +1,4 @@
 from env.connect4 import Connect4
-from util import encode_board_state
 
 g = Connect4()
 g.reset()
@@ -11,7 +10,7 @@ for a in mid_game_trajectory:
     board, done, player = g.step(a)
 
 print(board)
-print(encode_board_state(g))
+print(g.get_encoded_board_state())
 print(g.is_board_full())
 print(g.get_valid_actions())
 print("done:", done, "winner:", player)

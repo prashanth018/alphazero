@@ -1,14 +1,8 @@
 import torch
+from math import sqrt
 
-from env.connect4 import Connect4
+C_PUCT = 1.0
 
 
-def encode_board_state(game: Connect4):
-    state = game.get_state()
-    current_player = game.get_current_player()
-    return torch.stack(
-        [
-            (state == current_player).float(),
-            (state == game.other_player(current_player)).float(),
-        ]
-    )
+def puct_eval(action_val, prior, visit_count, parent_visit_count):
+    return action_val + C_PUCT * prior * (parent_visit_count**0.5) / (1 + visit_count)

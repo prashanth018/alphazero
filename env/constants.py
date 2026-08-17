@@ -21,3 +21,6 @@ reverse_diagonal = torch.tensor(
 filters = torch.stack([horizontal, vertical, diagonal, reverse_diagonal])
 
 WIN_KERNELS = filters.unsqueeze(1)
+
+ACTION_SPACE = 7
+STATE_SPACE = (2, 6, 7)
