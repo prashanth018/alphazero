@@ -24,3 +24,5 @@ WIN_KERNELS = filters.unsqueeze(1)
 
 ACTION_SPACE = 7
 STATE_SPACE = (2, 6, 7)
+ROWS = 6
+COLS = 7

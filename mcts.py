@@ -123,7 +123,7 @@ class MCTS:
     def simulation(self):
         current_buffer = []
         current_node = self.root
-        reward = 0.0
+        final_reward = 0.0
         while not done:
             player = self.game.get_current_player()
             done = self.game.is_done()
@@ -131,15 +131,30 @@ class MCTS:
                 game = self.game.clone()
                 self.select(current_node, game, done, player)
 
-            state = self.game.get_encoded_board_state()
+            state = self.game.get_state()
+            encoded_state = self.game.get_encoded_board_state()
             mcts_policy_vec = []
             for a in ACTION_SPACE:
                 mcts_policy_vec.append(
                     current_node.child_nodes[a].get_visit_count()
                     / current_node.get_visit_count()
                 )
-            current_buffer.append((state, mcts_policy_vec))
+            current_buffer.append((state, encoded_state, mcts_policy_vec))
 
             # use PUCT to find the next action and take a step,
             # if done then collect the final reward and update
             # the current_buffer
+            optimal_action = max(
+                range(ACTION_SPACE),
+                key=lambda a: puct_eval(
+                    current_node.child_nodes[a].get_state_value(),
+                    current_node.child_nodes[a].get_prior(),
+                    current_node.child_nodes[a].get_visit_count(),
+                    current_node.get_visit_count(),
+                ),
+            )
+
+            _, done, reward = self.game.step(optimal_action)
+            current_node = current_node.child_nodes[optimal_action]
+            if done:
+                final_reward = reward

@@ -1,30 +1,21 @@
 import torch
 import torch.nn.functional as F
 
-from env.constants import WIN_KERNELS
+from env.constants import ROWS, COLS, WIN_KERNELS
 
 
 class Connect4:
     def __init__(self):
         self.players = [1, -1]
         self.turn = 0
-        self.shape = (6, 7)
-        self.board = torch.zeros(self.shape[0], self.shape[1], dtype=torch.int8)
-        self.actions = [0, 1, 2, 3, 4, 5, 6]
+        self.board = torch.zeros(ROWS, COLS, dtype=torch.int8)
 
     def reset(self):
-        self.board = torch.zeros(self.shape[0], self.shape[1], dtype=torch.int8)
+        self.board = torch.zeros(ROWS, COLS, dtype=torch.int8)
         return self.board
 
     def get_state(self):
         return self.board
-
-    # def get_valid_actions(self):
-    #     actions = []
-    #     for action in self.actions:
-    #         if self._get_valid_row(action=action) >= 0:
-    #             actions.append(action)
-    #     return actions
 
     def get_current_player(self):
         return self.players[self.turn]
@@ -41,7 +32,7 @@ class Connect4:
         return False
 
     def get_shape(self):
-        self.shape
+        return (ROWS, COLS)
 
     def step(self, action):
         if action not in self.get_valid_actions():
@@ -98,3 +89,9 @@ class Connect4:
                 (state == self.other_player(current_player)).float(),
             ]
         )
+
+    def clone(self):
+        game = Connect4()
+        game.board = self.board.clone()
+        game.turn = self.turn
+        return game
