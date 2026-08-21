@@ -9,27 +9,23 @@ from util import puct_eval
 class Node:
     cV_v = 0.0
     N_v = 0
-    parent_state = 0
-    parent_action = 0
     state = 0
     predictor_state_value = 0.0
-    predictor_policy = []
+    # predictor_policy = []
     prior = 0.0
     child_nodes = {}
 
-    def __init__(self, parent_state, parent_action, prior):
+    def __init__(self, prior):
         self.cV_v = 0.0
         self.N_v = 0
-        self.parent_state = parent_state
-        self.parent_action = parent_action
         self.prior = prior
 
     def expand(self, state, policy, state_value):
         self.state = state
-        self.predictor_policy = policy
+        # self.predictor_policy = policy
         self.predictor_state_value = state_value
         for a in range(ACTION_SPACE):
-            self.child_nodes[a] = Node(self.state, a, prior=policy[0][a].item())
+            self.child_nodes[a] = Node(prior=policy[0][a].item())
         self.increment_cum_state_value(state_value=state_value)
         self.increment_visits()
 
@@ -71,9 +67,13 @@ class MCTS:
     def __init__(self, net: AlphaZeroNet, game: Connect4):
         self.predictor = net
         self.game = game
-        root_state = game.get_encoded_board_state()
         # root node initialized, not expanded
-        self.root = Node(root_state, None, 0.0)
+        self.root = Node(0.0)
+
+    def reset(self):
+        self.game.reset()
+        # reinitialize root
+        self.root = Node(0.0)
 
     def select(self, node: Node, game: Connect4, done: bool, player):
         # if we reach last node, update the
@@ -84,8 +84,11 @@ class MCTS:
             if player == 0:
                 ret_val = 0.0
             else:
+                # Game over & -ve reward for loser
                 ret_val = -1.0
+            # game.get_encoded_board_state() returns the terminal state
             node.update_terminal_val(game.get_encoded_board_state(), ret_val)
+            # caller is the opponent and they get a positive reward for playing a winning move
             return -ret_val
 
         if not node.is_expanded():
@@ -121,6 +124,7 @@ class MCTS:
         return state_value
 
     def simulation(self):
+        self.reset()
         current_buffer = []
         current_node = self.root
         final_reward = 0.0
@@ -131,14 +135,7 @@ class MCTS:
                 game = self.game.clone()
                 self.select(current_node, game, done, player)
 
-            state = self.game.get_state()
-            encoded_state = self.game.get_encoded_board_state()
-            mcts_policy_vec = []
-            for a in ACTION_SPACE:
-                mcts_policy_vec.append(
-                    current_node.child_nodes[a].get_visit_count()
-                    / current_node.get_visit_count()
-                )
+            state, encoded_state, mcts_policy_vec = self.get_buffer_elem(current_node)
             current_buffer.append((state, encoded_state, mcts_policy_vec))
 
             # use PUCT to find the next action and take a step,
@@ -157,4 +154,37 @@ class MCTS:
             _, done, reward = self.game.step(optimal_action)
             current_node = current_node.child_nodes[optimal_action]
             if done:
+                current_buffer.append(self.get_buffer_elem(current_node))
                 final_reward = reward
+                current_buffer = self.update_buffer_with_final_reward(
+                    final_reward, current_buffer
+                )
+                break
+        if len(current_buffer) > 0:
+            return current_buffer
+        else:
+            print("buffer is empty")
+            return []
+
+    def update_buffer_with_final_reward(self, final_reward, current_buffer):
+        for idx in range(len(current_buffer) - 1, -1, -1):
+            current_buffer[idx] = (
+                current_buffer[idx][0],
+                current_buffer[idx][1],
+                current_buffer[idx][2],
+                final_reward,
+            )
+            final_reward = -final_reward
+        return current_buffer
+
+    def get_buffer_elem(self, current_node):
+        state = self.game.get_state()
+        encoded_state = self.game.get_encoded_board_state()
+        mcts_policy_vec = []
+        for a in ACTION_SPACE:
+            mcts_policy_vec.append(
+                current_node.child_nodes[a].get_visit_count()
+                / current_node.get_visit_count()
+            )
+
+        return state, encoded_state, mcts_policy_vec
