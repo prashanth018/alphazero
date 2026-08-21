@@ -34,3 +34,4 @@ Intuition: The whole idea behind MCTS is to search for the paths to success and 
 
 Questions:
 - How is AlphaZero not highly customized for the game? Also, AlphaZero algorithm seems to be only for zero-sum game? - can it also be applied for collaborative games?
+- Why are we not penalizing the net for predicting the illegal moves? The approach seems to be more like "teach the network what the right to do is not forget about the wrong things - like edge cases".

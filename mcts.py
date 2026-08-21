@@ -7,25 +7,20 @@ from util import puct_eval
 
 
 class Node:
-    cV_v = 0.0
-    N_v = 0
-    state = 0
     predictor_state_value = 0.0
-    # predictor_policy = []
-    prior = 0.0
-    child_nodes = {}
 
     def __init__(self, prior):
         self.cV_v = 0.0
         self.N_v = 0
         self.prior = prior
+        self.child_nodes = {}
 
     def expand(self, state, policy, state_value):
         self.state = state
-        # self.predictor_policy = policy
         self.predictor_state_value = state_value
         for a in range(ACTION_SPACE):
-            self.child_nodes[a] = Node(prior=policy[0][a].item())
+            # self.child_nodes[a] = Node(prior=policy[0][a].item())
+            self.child_nodes[a] = Node(prior=policy[a])
         self.increment_cum_state_value(state_value=state_value)
         self.increment_visits()
 
@@ -54,15 +49,15 @@ class Node:
 
     def is_expanded(self):
         if len(self.child_nodes) == 0:
-            return True
-        return False
+            return False
+        return True
 
 
 class MCTS:
     predictor = None
     game = None
     root = None
-    MCTS_SIMS = 1
+    MCTS_SIMS = 4
 
     def __init__(self, net: AlphaZeroNet, game: Connect4):
         self.predictor = net
@@ -119,7 +114,9 @@ class MCTS:
     # - Create child nodes and hand them priors
     # - Lazy initialize node with state value
     def expand(self, node: Node, state):
-        policy_vector, state_value = self.predictor(state)
+        # policy_vector, state_value = self.predictor(state)
+        policy_vector = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        state_value = 1.0
         node.expand(state, policy_vector, state_value)
         return state_value
 
@@ -128,12 +125,17 @@ class MCTS:
         current_buffer = []
         current_node = self.root
         final_reward = 0.0
+        i = 1
+        done = self.game.is_done()
         while not done:
+            print("Depth ", i)
+            i += 1
             player = self.game.get_current_player()
             done = self.game.is_done()
-            for iter in self.MCTS_SIMS:
+            for iter in range(self.MCTS_SIMS):
                 game = self.game.clone()
                 self.select(current_node, game, done, player)
+                print("     Iter ", iter)
 
             state, encoded_state, mcts_policy_vec = self.get_buffer_elem(current_node)
             current_buffer.append((state, encoded_state, mcts_policy_vec))
@@ -181,10 +183,21 @@ class MCTS:
         state = self.game.get_state()
         encoded_state = self.game.get_encoded_board_state()
         mcts_policy_vec = []
-        for a in ACTION_SPACE:
+        for a in range(ACTION_SPACE):
             mcts_policy_vec.append(
                 current_node.child_nodes[a].get_visit_count()
-                / current_node.get_visit_count()
+                / (current_node.get_visit_count() - 1)
             )
 
         return state, encoded_state, mcts_policy_vec
+
+
+if __name__ == "__main__":
+    game = Connect4()
+    net = AlphaZeroNet()
+    mcts = MCTS(net, game)
+    buf = mcts.simulation()
+
+    with open("out.txt", "w") as f:
+        for t in buf:
+            f.write(f"{t}\n")
