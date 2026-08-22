@@ -32,6 +32,12 @@ Prior P is only used in PUCT selection.
 Prior steers where simulations go (via selection); backup just averages what comes back (with a sign flip per level)
 Intuition: The whole idea behind MCTS is to search for the paths to success and stamp those paths with +1 and -1s - which will be our ground truth. We don't want network's raw opinion to contaminate the averages.
 
+What does MCTS do for invalid actions?
+Irrespective of what the ResNet returns, we always 0 out the probability for invalid actions and then renormalize the probability. We also do not create child nodes for invalid actions. Now, given that we don't create a child node, optimal action selection would exclude invalid moves during PUCT. Why do this? The goal of MCTS is to generate GT policy vectors and state values. By forcing MCTS to not take the invalid moves, we force the probability of invalid actions to 0. This enables NN to learn the rules & boundaries of the game by itself.
+
+Why not use the state values to populate the buffer instead of using terminal game outcome?
+The state/action values in MCTS are computed by averaging the evaluations of the leaf nodes. Leaf node values are computed by the ResNet. Using these values to retrain the ResNet would creates a feedback loop known as bootstrapping bias. Therefore by training strictly on 'z' we break the loop and ground to the reality.   
+
 Questions:
 - How is AlphaZero not highly customized for the game? Also, AlphaZero algorithm seems to be only for zero-sum game? - can it also be applied for collaborative games?
 - Why are we not penalizing the net for predicting the illegal moves? The approach seems to be more like "teach the network what the right to do is not forget about the wrong things - like edge cases".
