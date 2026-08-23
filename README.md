@@ -38,6 +38,32 @@ Irrespective of what the ResNet returns, we always 0 out the probability for inv
 Why not use the state values to populate the buffer instead of using terminal game outcome?
 The state/action values in MCTS are computed by averaging the evaluations of the leaf nodes. Leaf node values are computed by the ResNet. Using these values to retrain the ResNet would creates a feedback loop known as bootstrapping bias. Therefore by training strictly on 'z' we break the loop and ground to the reality.   
 
+Important Note:
+Realized a bug. Below was how I coded the PUCT selection initially and the tree ended up actively ignoring the best move.
+```
+optimal_action = max(
+    valid_actions,
+    key=lambda a: puct_eval(
+        current_node.child_nodes[a].get_state_value(),
+        current_node.child_nodes[a].get_prior(),
+        current_node.child_nodes[a].get_visit_count(),
+        current_node.get_visit_count(),
+    ),
+)
+```
+This is a move being played from the node's perspective. We either minimize child nodes' values and then use PUCT or we maximize the -ve of the child nodes' state values. We essentially, negamax to choose the right action. Below is the right logic.
+```
+optimal_action = max(
+    valid_actions,
+    key=lambda a: puct_eval(
+        -current_node.child_nodes[a].get_state_value(),
+        current_node.child_nodes[a].get_prior(),
+        current_node.child_nodes[a].get_visit_count(),
+        current_node.get_visit_count(),
+    ),
+)
+```
+
 Questions:
 - How is AlphaZero not highly customized for the game? Also, AlphaZero algorithm seems to be only for zero-sum game? - can it also be applied for collaborative games?
 - Why are we not penalizing the net for predicting the illegal moves? The approach seems to be more like "teach the network what the right to do is not forget about the wrong things - like edge cases".

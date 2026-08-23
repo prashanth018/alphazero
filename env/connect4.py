@@ -15,7 +15,7 @@ class Connect4:
         return self.board
 
     def get_state(self):
-        return self.board
+        return self.board.clone()
 
     def get_current_player(self):
         return self.players[self.turn]
