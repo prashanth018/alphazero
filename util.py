@@ -16,6 +16,21 @@ def puct_eval(action_val, prior, visit_count, parent_visit_count):
     )
 
 
+def sample_move_from_visits(child_visits: dict, temperature):
+    # child_visits: {action: visit_count} over valid actions
+    actions = list(child_visits)
+    counts = torch.tensor([child_visits[a] for a in actions], dtype=torch.float)
+
+    # greedy
+    if temperature == 0:
+        return actions[int(counts.argmax())]
+
+    # sample
+    weights = counts ** (1 / temperature)
+    idx = torch.multinomial(weights, 1).item()
+    return actions[idx]
+
+
 def get_decoded_board_state(encoded_state, current_player, other_player):
     if encoded_state.shape != (2, 6, 7):
         raise "Invalid shape"

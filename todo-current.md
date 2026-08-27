@@ -13,7 +13,6 @@
 - [x] Handle illegal moves by filtering them & renormalizing the distribution in PUCT & expand node
 - [ ] Sample from distribution instead of PUCT while actually making a move
 - [ ] Add temperature schedule for sampling the next move in an actual game
-- [ ] Understand intuition behind each of the constants
 - [ ] Add Root Dirichlet noise
 
 ## Game env
@@ -37,3 +36,6 @@
 ## Evals
 - [ ] Add evals against a random agent/perfect solver every few epochs
 - [ ] (Optional) Gating — only promote a new net if it beats the current best
+
+## Intuition
+- [ ] Understand intuition behind each of the constants

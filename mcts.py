@@ -11,6 +11,7 @@ from util import (
     next_log_path,
     puct_eval,
     re_normalize,
+    sample_move_from_visits,
 )
 
 
@@ -64,16 +65,36 @@ class Node:
             return False
         return True
 
+    def add_dirichlet_noise(self, alpha=1.0, epsilon=0.25):
+        # mix Dirichlet noise into the children's priors: P = (1-eps)*p + eps*eta
+        # call once on the (expanded) root during self-play for exploration
+        actions = list(self.child_nodes)
+        noise = torch.distributions.Dirichlet(
+            torch.full((len(actions),), float(alpha))
+        ).sample()
+        for a, eta in zip(actions, noise):
+            child = self.child_nodes[a]
+            child.prior = (1 - epsilon) * child.prior + epsilon * eta.item()
+
 
 class MCTS:
     predictor = None
     game = None
     root = None
 
-    def __init__(self, net: AlphaZeroNet, game: Connect4, mcts_sims: int = 4):
+    def __init__(
+        self,
+        net: AlphaZeroNet,
+        game: Connect4,
+        mcts_sims: int = 4,
+        mode: str = "train",
+    ):
+        assert mode in ("train", "eval"), f"invalid mode: {mode}"
         self.predictor = net
         self.game = game
         self.MCTS_SIMS = mcts_sims
+        self.mode = mode
+        self.exploration_cutoff = 12
         # root node initialized, not expanded
         self.root = Node(0.0)
 
@@ -138,43 +159,44 @@ class MCTS:
         self.reset()
         current_buffer = []
         current_node = self.root
-        final_reward = 0.0
-        i = 1
+        final_outcome = 0.0
+        if self.mode == "train":
+            temperature = 1
+        elif self.mode == "eval":
+            temperature = 0
+        iter = 1
         done = self.game.is_done()
         while not done:
-            print("Depth ", i)
-            i += 1
             player = self.game.get_current_player()
             done = self.game.is_done()
-            for iter in range(self.MCTS_SIMS):
+            for _ in range(self.MCTS_SIMS):
                 game = self.game.clone()
                 self.select(current_node, game, done, player)
-                print("     Iter ", iter)
 
             state, encoded_state, mcts_policy_vec = self.get_buffer_elem(current_node)
             current_buffer.append((state, encoded_state, mcts_policy_vec))
+            if iter > self.exploration_cutoff:
+                temperature = 0
 
-            # use PUCT to find the next action and take a step,
-            # if done then collect the final reward and update
-            # the current_buffer
+            # for optimal action, sample based on stats for
+            # first 12 moves. Then act greedy
             valid_actions = self.game.get_valid_actions()
-            optimal_action = max(
-                valid_actions,
-                key=lambda a: puct_eval(
-                    -current_node.child_nodes[a].get_state_value(),
-                    current_node.child_nodes[a].get_prior(),
-                    current_node.child_nodes[a].get_visit_count(),
-                    current_node.get_visit_count(),
-                ),
-            )
+            child_visits = {
+                a: current_node.child_nodes[a].get_visit_count() for a in valid_actions
+            }
+            optimal_action = sample_move_from_visits(child_visits, temperature)
 
             _, done, reward = self.game.step(optimal_action)
             current_node = current_node.child_nodes[optimal_action]
+            iter += 1
+
+            # if done then collect the final reward and update
+            # the current_buffer
             if done:
                 current_buffer.append(self.get_buffer_elem(current_node))
-                final_reward = reward
-                current_buffer = self.update_buffer_with_final_reward(
-                    final_reward, current_buffer
+                final_outcome = reward
+                current_buffer = self.update_buffer_with_final_outcome(
+                    final_outcome, current_buffer
                 )
                 break
         if len(current_buffer) > 0:
@@ -183,15 +205,15 @@ class MCTS:
             print("buffer is empty")
             return []
 
-    def update_buffer_with_final_reward(self, final_reward, current_buffer):
+    def update_buffer_with_final_outcome(self, final_outcome, current_buffer):
         for idx in range(len(current_buffer) - 1, -1, -1):
             current_buffer[idx] = (
                 current_buffer[idx][0],
                 current_buffer[idx][1],
                 current_buffer[idx][2],
-                final_reward,
+                final_outcome,
             )
-            final_reward = -final_reward
+            final_outcome = -final_outcome
         return current_buffer
 
     def get_buffer_elem(self, current_node):
