@@ -1,7 +1,7 @@
 # AlphaZero — current work (pick up here)
 
 > Active implementation TODOs for the AlphaZero build itself.
-> (Post-project backlog lives in [to-do.md](to-do.md).)
+> (Post-project backlog lives in `~/Documents/Purpose/interview-prep/to-do.md`.)
 
 ## MCTS / self-play loop
 - [x] Use PUCT to select the next action and take a step; if terminal, collect the final reward and update `current_buffer`

@@ -13,6 +13,18 @@ Below are some of the properties of Connect4 that is worth noting for AlphaZero 
 How is MCTS node evaluation different from Minimax?
 Intuition: Every Player evaluates their position from their perspective. Assuming that its Player 1's turn to play, they play to maximize their return. A detour; Connect 4 is a zero-sum game. Therefore, "good for me = bad for you". Now, when player 1 makes a move and its player 2's turn, they play to maximize their position. Their state (which is a tensor(2,6,7)) already represents their position (plane 0 is player 2's pieces and plane 1 is player 1's pieces). Now assuming Player 2's state value was V(P2|action), then Player 1's state value would be `- min of all actions (V(P2|action))`. Now imagine the game is won by Player 1. Player 1 gets a reward of +1 on his turn. The replay buffer entry for Player 1's would look like: `tuple(tensor(plane0:player1, plane1:player2), policy_vector, +1)`. Buffer entry for Player 2's turn would look like: `tuple(tensor(plane0:player2, plane1:player1), policy_vector, -1)` since the reward sign gets flipped.
 
+Dirichlet Distribution & Noise:
+- `from torch.distributions.dirichlet import Dirichlet; dist = Dirichlet(alphas); sample = dist.sample()`
+- Properties:
+    - Dirichlet Distribution helps generate noise for a multivariate distribution. It depends on the initial vector called `alpha`. If `alpha` vector elems are too small like `tensor([0.1, 0.1, 0.1])`, then the outcome is too sharp and equally possible with 0,1 or 2. For example:
+        ```
+        >>> o = torch.ones((3)) * 0.1
+        >>> Dirichlet(o).sample()
+        tensor([4.8086e-01, 1.4877e-07, 5.1914e-01])
+        >>> Dirichlet(o).sample()
+        tensor([9.9322e-01, 6.7825e-03, 5.4205e-09])
+        ``` 
+    - 
 
 Why tanh and not sigmoid?
 To be able to express -1 to +1 range for state values. Sigmoid represents 0 to +1
@@ -63,6 +75,13 @@ optimal_action = max(
     ),
 )
 ```
+
+### Learning
+- L1 Norm: `from torch.nn.functional import normalize; normalize(p_v, p=1, dim=0)`
+- L2 Norm: `from torch.nn.functional import normalize; normalize(p_v, p=2, dim=0)`
+- L1 norm is manhattan distance i.e., `abs(p0) + abs(p1) + ..` while L2 norm is euclidean distance i.e., `sqrt(p0**2 + p1**2 + ..)`
+- To get distance, euclidean distance = `torch.linalg.vector_norm(v, ord=2)`; manhattan distance = `torch.linalg.vector_norm(v, ord=1)`
+
 
 Questions:
 - How is AlphaZero not highly customized for the game? Also, AlphaZero algorithm seems to be only for zero-sum game? - can it also be applied for collaborative games?
