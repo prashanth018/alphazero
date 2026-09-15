@@ -23,7 +23,7 @@ def sample_move_from_visits(child_visits: dict, temperature):
 
     # greedy
     if temperature == 0:
-        return actions[int(counts.argmax())]
+        return actions[counts.argmax().item()]
 
     # sample
     weights = counts ** (1 / temperature)
@@ -45,8 +45,8 @@ def re_normalize(policy, mask):
     if s > 0:
         policy = policy / policy.sum()
     else:
-        # if the network policy makes all legal actions 0.0
-        # probable then fallback to uniform distribution
+        # if the network policy makes all legal action
+        # probs 0.0 then fallback to uniform distribution
         policy = mask.float() / mask.sum()
     return policy
 

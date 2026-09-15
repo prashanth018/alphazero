@@ -86,13 +86,13 @@ class MCTS:
         self,
         net: AlphaZeroNet,
         game: Connect4,
-        mcts_sims: int = 4,
+        rollouts: int = 4,
         mode: str = "train",
     ):
         assert mode in ("train", "eval"), f"invalid mode: {mode}"
         self.predictor = net
         self.game = game
-        self.MCTS_SIMS = mcts_sims
+        self.rollouts = rollouts
         self.mode = mode
         self.exploration_cutoff = 12
         # root node initialized, not expanded
@@ -180,7 +180,7 @@ class MCTS:
         while not done:
             player = self.game.get_current_player()
             done = self.game.is_done()
-            for _ in range(self.MCTS_SIMS):
+            for _ in range(self.rollouts):
                 game = self.game.clone()
                 self.select(current_node, game, done, player)
 
@@ -210,6 +210,7 @@ class MCTS:
                     final_outcome, current_buffer
                 )
                 break
+
         if len(current_buffer) > 0:
             return current_buffer
         else:
@@ -242,6 +243,12 @@ class MCTS:
                 )
 
         return state, encoded_state, mcts_policy_vec
+
+    def train(self):
+        self.mode = "train"
+
+    def eval(self):
+        self.mode = "eval"
 
 
 if __name__ == "__main__":

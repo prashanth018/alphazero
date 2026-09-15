@@ -21,6 +21,12 @@ class ReplayBuffer:
         )
         self.position = (self.position + 1) % self.capacity
 
+    def push(self, buf: list):
+        assert len(buf) > 0
+        assert len(buf[0]) == 3
+        for b in buf:
+            self.push(*b)
+
     def sample(self, batch_size):
         if batch_size > len(self.buffer):
             batch_size = len(self.buffer)
