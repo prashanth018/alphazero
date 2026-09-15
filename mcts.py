@@ -156,16 +156,27 @@ class MCTS:
         return state_value
 
     def simulation(self):
+        # reset game
         self.reset()
+        # expand root & add dirichlet noise to facilitate exploration
+        done = self.game.is_done()
+        player = self.game.get_current_player()
+        game = self.game.clone()
+        self.select(self.root, game=game, done=done, player=player)
+        self.root.add_dirichlet_noise()
+
+        # init params
+        final_outcome = 0.0
         current_buffer = []
         current_node = self.root
-        final_outcome = 0.0
+        depth = 1
+
+        # ruthless during evals, exploratory during training
         if self.mode == "train":
             temperature = 1
         elif self.mode == "eval":
             temperature = 0
-        iter = 1
-        done = self.game.is_done()
+
         while not done:
             player = self.game.get_current_player()
             done = self.game.is_done()
@@ -175,7 +186,7 @@ class MCTS:
 
             state, encoded_state, mcts_policy_vec = self.get_buffer_elem(current_node)
             current_buffer.append((state, encoded_state, mcts_policy_vec))
-            if iter > self.exploration_cutoff:
+            if depth > self.exploration_cutoff:
                 temperature = 0
 
             # for optimal action, sample based on stats for
@@ -188,7 +199,7 @@ class MCTS:
 
             _, done, reward = self.game.step(optimal_action)
             current_node = current_node.child_nodes[optimal_action]
-            iter += 1
+            depth += 1
 
             # if done then collect the final reward and update
             # the current_buffer
